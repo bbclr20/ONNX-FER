@@ -1,32 +1,33 @@
-"""An example of using the model of FER+ Emotion Recognition.
-https://github.com/onnx/models/tree/master/vision/body_analysis/emotion_ferplus
-"""
-import onnx
-import onnxruntime as ort
+import cv2
+import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
+import onnxruntime as ort
 
 
+image_path = "image/image0002636.jpg"
+model_path = "emotion_ferplus/model.onnx"
 emotions = ['neutral', 'happiness', 'surprise', 'sadness', 'anger', 'disgust', 'fear', 'contempt']
 
 def preprocess(image_path):
-    input_shape = (1, 1, 64, 64)
-    img = Image.open(image_path)
-    img = img.resize((64, 64), Image.ANTIALIAS)
-    img_data = np.array(img)
-    img_data = np.resize(img_data, input_shape)
-    img_data = img_data.astype(np.float32)
-    return img_data
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    image =  cv2.resize(image, (64,64))
+    image = image.astype(np.float32)
+    image = image.reshape((1, 1, 64, 64))
+    return image
+
 
 def softmax(x):
-    e_x = np.exp(x - np.max(x) + 1e-7)
+    e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=1) # only difference
 
-ort_session = ort.InferenceSession('emotion_ferplus/model.onnx')
-img_data = preprocess("image/image0002170.jpg")
+# Read image and run the model
+img_data = preprocess(image_path)
+plt.imshow(img_data[0][0])
+ort_session = ort.InferenceSession(model_path)
 outputs = ort_session.run(None, {'Input3': img_data})
 
-# print(outputs[0])
-# print(softmax(outputs[0]))
-
+# # Result
+# print(outputs)
+print(softmax(outputs[0]))
 print(emotions[np.argmax(outputs[0])])
+plt.show()
